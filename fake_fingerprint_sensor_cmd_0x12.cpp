@@ -252,9 +252,19 @@ void sendDataChunk(uint8_t packetType, const uint8_t *data, uint16_t len) {
   sendPacket(packetType, data, len);
 }
 
-void stream256BytePayload(const uint8_t *payload256) {
-  sendDataChunk(PTYPE_DATA, payload256, CHUNK_SIZE);
-  sendDataChunk(PTYPE_ENDDATA, payload256 + CHUNK_SIZE, CHUNK_SIZE);
+// Streams `len` bytes out of `data` in CHUNK_SIZE pieces, marking the final
+// chunk as PTYPE_ENDDATA. Used by UPCHAR for both the 256-byte (RAM) and
+// 512-byte (Flash) export paths so the chunking logic lives in one place.
+void streamBytes(const uint8_t *data, uint16_t len) {
+  uint16_t offset = 0;
+  while (offset < len) {
+    const uint16_t remaining = len - offset;
+    const uint16_t chunkLen = (remaining > CHUNK_SIZE) ? CHUNK_SIZE : remaining;
+    const uint8_t pid = (offset + chunkLen == len) ? PTYPE_ENDDATA : PTYPE_DATA;
+
+    sendDataChunk(pid, data + offset, chunkLen);
+    offset += chunkLen;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -433,23 +443,81 @@ void handleMatch() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// UPCHAR — template export
+//
+// Two independent sources, deliberately kept separate:
+//
+//   256-byte request  (RAM / single scan)
+//     params = [bufferId]              (1 byte:  bufferId = 1 or 2)
+//     params = [bufferId, 0x01]        (2 bytes: explicit "give me 256" form)
+//     Reads whichever CharBuffer (1 or 2) is currently populated in RAM.
+//     This is exactly what a real sensor's UPCHAR does with the working
+//     buffer, and it is unrelated to anything stored in Flash.
+//
+//   512-byte request  (enrolled Flash template ONLY)
+//     params = [0x02, idHi, idLo]      (3 bytes: length code + 16-bit Flash ID)
+//     This is NEVER generated on the fly from buffer1/buffer2. It is only
+//     ever a byte-for-byte replay of a template that was already verified
+//     (two matching scans via REGMODEL) and committed to templateCode[] via
+//     STORE. If the ID is out of range or the slot is empty, the request
+//     fails — there is no fallback to RAM.
+//
+// Any other parameter shape is a malformed request.
+// ---------------------------------------------------------------------------
 void handleUpChar(const uint8_t *params, uint16_t paramLen) {
-  if (params == nullptr || (paramLen != 1 && paramLen != 2)) {
+  if (params == nullptr || (paramLen != 1 && paramLen != 2 && paramLen != 3)) {
     sendSimpleStatus(ERR_PACKETRECEIVE);
     return;
   }
 
-  const uint8_t bufferId = params[0];
-  uint16_t templateLen = 256;
-
-  if (paramLen == 2) {
-    // Simulator extension retained intentionally: 0x01 = 256 B, 0x02 = 512 B.
-    if (params[1] == 0x02) {
-      templateLen = 512;
-    } else if (params[1] != 0x01) {
+  // --- 512-byte path: strictly Flash-only, never synthesized from RAM. ---
+  if (paramLen == 3) {
+    if (params[0] != 0x02) {
+      // Only the 512-byte length code carries a Flash ID in this form.
       sendSimpleStatus(ERR_PACKETRECEIVE);
       return;
     }
+
+    const uint16_t flashId = ((uint16_t)params[1] << 8) | (uint16_t)params[2];
+
+    if (flashId >= MAX_TEMPLATES) {
+      if (DEBUG) Serial.printf("UpChar(512): Flash ID %u out of range\n", flashId);
+      sendSimpleStatus(ERR_BADLOCATION);
+      return;
+    }
+
+    if (templateCode[flashId] == 0xFF) {
+      if (DEBUG) Serial.printf("UpChar(512): Flash ID %u is empty/unpopulated\n", flashId);
+      sendSimpleStatus(ERR_FEATUREFAIL);
+      return;
+    }
+
+    const uint8_t code = templateCode[flashId];
+
+    uint8_t template256[256];
+    memset(template256, 0, sizeof(template256));
+    template256[0] = code;
+
+    memcpy(rawTemplate512, template256, 256);
+    memcpy(rawTemplate512 + 256, template256, 256);
+    upcharTemplateLength = 512;
+
+    if (DEBUG) Serial.printf("UpChar(512): serving enrolled Flash ID=%u code=%u\n", flashId, code);
+
+    sendSimpleStatus(OK);
+    streamBytes(rawTemplate512, 512);
+    return;
+  }
+
+  // --- 256-byte path: RAM working buffer (CharBuffer1 / CharBuffer2). ---
+  const uint8_t bufferId = params[0];
+
+  if (paramLen == 2 && params[1] != 0x01) {
+    // The 2-byte form only exists to explicitly request 256 bytes.
+    // A 512 request must use the 3-byte Flash-ID form above.
+    sendSimpleStatus(ERR_PACKETRECEIVE);
+    return;
   }
 
   uint8_t code = 0;
@@ -473,31 +541,12 @@ void handleUpChar(const uint8_t *params, uint16_t paramLen) {
   uint8_t template256[256];
   memset(template256, 0, sizeof(template256));
   template256[0] = code;
+  upcharTemplateLength = 256;
 
-  memcpy(rawTemplate512, template256, 256);
-  memcpy(rawTemplate512 + 256, template256, 256);
-  upcharTemplateLength = templateLen;
+  if (DEBUG) Serial.printf("UpChar(256): serving RAM CharBuffer%u code=%u\n", bufferId, code);
 
-  // Acknowledge the command before streaming the requested data.
   sendSimpleStatus(OK);
-
-  uint16_t offset = 0;
-  while (offset < templateLen) {
-    const uint16_t remaining = templateLen - offset;
-    const uint16_t chunkLen = (remaining > CHUNK_SIZE) ? CHUNK_SIZE : remaining;
-    const uint8_t pid = (offset + chunkLen == templateLen) ? PTYPE_ENDDATA : PTYPE_DATA;
-
-    uint8_t chunk[CHUNK_SIZE];
-    for (uint16_t i = 0; i < chunkLen; ++i) {
-      const uint16_t absoluteIndex = offset + i;
-      chunk[i] = (absoluteIndex < 256)
-                   ? rawTemplate512[absoluteIndex]
-                   : rawTemplate512[absoluteIndex - 256];
-    }
-
-    sendDataChunk(pid, chunk, chunkLen);
-    offset += chunkLen;
-  }
+  streamBytes(template256, 256);
 }
 
 // ---------------------------------------------------------------------------
