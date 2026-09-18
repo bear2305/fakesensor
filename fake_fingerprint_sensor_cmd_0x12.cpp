@@ -134,14 +134,6 @@ uint8_t rawBuffer2[256];
 // template and lets the simulator recognize its own deterministic format.
 uint8_t rawTemplate512[512];
 
-// DELIBERATE FAKE-SENSOR FEATURE:
-// UPCHAR can return either:
-//   - 256 bytes: [3-bit finger code] + [255 bytes of 0x00]
-//   - 512 bytes: the exact same 256-byte template duplicated twice
-// The mode is selected by the UPCHAR parameter. This is a simulator
-// extension intended for masters that want to exercise either template size.
-uint16_t upcharTemplateLength = 256;
-
 // Most recent successful GETIMAGE result.
 int16_t lastCapturedCode = -1;
 
@@ -163,7 +155,6 @@ bool authenticated = false;
 // Forward declarations
 void handleIncomingDataPacket(uint8_t packetType, const uint8_t *payload, uint16_t payloadLen);
 bool isValidFakeTemplate256(const uint8_t *data);
-bool isValidFakeTemplate512(const uint8_t *data);
 
 // ---------------------------------------------------------------------------
 // Utility
@@ -322,6 +313,10 @@ void handleVerifyPassword(const uint8_t *data, uint16_t len) {
 
 void handleGetImage() {
   if (!fingerPresent()) {
+    // A failed capture must invalidate any previously captured image, so a
+    // later Image2Tz() can't succeed on a stale code from an earlier,
+    // already-consumed-or-not GetImage() call.
+    lastCapturedCode = -1;
     if (DEBUG) Serial.println("GetImage: NO FINGER");
     sendSimpleStatus(ERR_NOFINGER);
     return;
@@ -386,44 +381,6 @@ void handleRegModelSymmetric() {
 
   if (DEBUG) Serial.printf("RegModel OK: Model generated (Code=%d), character buffers cleared\n", modelCode);
   sendSimpleStatus(OK);
-}
-
-bool extractFakeFingerCode(const uint8_t *data, uint16_t len, uint8_t *outCode) {
-  if (data == nullptr || outCode == nullptr) {
-    return false;
-  }
-
-  if (len != 256 && len != 512) {
-    return false;
-  }
-
-  if (!isValidFakeTemplate256(data)) {
-    return false;
-  }
-
-  if (len == 512) {
-    if (!isValidFakeTemplate512(data)) {
-      return false;
-    }
-  }
-
-  *outCode = data[0] & 0x07;
-  return true;
-}
-
-bool compareFakeTemplates(const uint8_t *a, uint16_t aLen,
-                          const uint8_t *b, uint16_t bLen,
-                          uint8_t *outCodeA, uint8_t *outCodeB) {
-  uint8_t codeA = 0;
-  uint8_t codeB = 0;
-
-  if (!extractFakeFingerCode(a, aLen, &codeA)) return false;
-  if (!extractFakeFingerCode(b, bLen, &codeB)) return false;
-
-  if (outCodeA != nullptr) *outCodeA = codeA;
-  if (outCodeB != nullptr) *outCodeB = codeB;
-
-  return codeA == codeB;
 }
 
 void handleMatch() {
@@ -501,7 +458,6 @@ void handleUpChar(const uint8_t *params, uint16_t paramLen) {
 
     memcpy(rawTemplate512, template256, 256);
     memcpy(rawTemplate512 + 256, template256, 256);
-    upcharTemplateLength = 512;
 
     if (DEBUG) Serial.printf("UpChar(512): serving enrolled Flash ID=%u code=%u\n", flashId, code);
 
@@ -541,7 +497,6 @@ void handleUpChar(const uint8_t *params, uint16_t paramLen) {
   uint8_t template256[256];
   memset(template256, 0, sizeof(template256));
   template256[0] = code;
-  upcharTemplateLength = 256;
 
   if (DEBUG) Serial.printf("UpChar(256): serving RAM CharBuffer%u code=%u\n", bufferId, code);
 
@@ -593,13 +548,6 @@ void finishDownChar(uint8_t status) {
   if (status == OK) {
     if (downloadLength != 256 || !isValidFakeTemplate256(downloadBuffer)) {
       status = ERR_PACKETRECEIVE;
-    } else {
-      for (uint16_t i = 1; i < 256; ++i) {
-        if (downloadBuffer[i] != 0x00) {
-          status = ERR_PACKETRECEIVE;
-          break;
-        }
-      }
     }
   }
 
@@ -670,17 +618,6 @@ bool isValidFakeTemplate256(const uint8_t *data) {
 
   for (uint16_t i = 1; i < 256; ++i) {
     if (data[i] != 0x00) return false;
-  }
-
-  return true;
-}
-
-bool isValidFakeTemplate512(const uint8_t *data) {
-  if (data == nullptr) return false;
-  if (!isValidFakeTemplate256(data)) return false;
-
-  for (uint16_t i = 0; i < 256; ++i) {
-    if (data[i] != data[i + 256]) return false;
   }
 
   return true;
