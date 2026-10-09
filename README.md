@@ -1,5 +1,9 @@
 [README.md](https://github.com/user-attachments/files/32364332/README.md)
 an emulated finger print senser
+#Not ready Yet
+
+#But you can try the corrected version 
+
 # 🖐️ Fake Fingerprint Sensor — ESP32 (Wokwi)
 
 A **software emulator** of the binary UART protocol used by [`Adafruit_Fingerprint.h`](https://github.com/adafruit/Adafruit-Fingerprint-Sensor-Library) (AS608 / R30x-style optical fingerprint modules) — running entirely on an ESP32, no physical sensor required.
