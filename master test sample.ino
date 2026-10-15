@@ -1,5 +1,5 @@
 /*
-  Adafruit Fingerprint Sensor - Master Test Sketch
+  Adafruit Fingerprint Sensor - Master Test Sketch (Corrected)
   ---------------------------------------------------------------------------
   Designed to test the Fake Fingerprint Sensor emulator sketch.
   
@@ -53,8 +53,8 @@ void setup() {
   Serial.print(F("Packet len: ")); Serial.println(finger.packet_len);
   Serial.print(F("Baud rate: ")); Serial.println(finger.baud_rate);
 
-  // Get current template count
-  finger.templateCount();
+  // Get current template count using getTemplateCount()
+  finger.getTemplateCount();
   Serial.print(F("Sensor contains ")); 
   Serial.print(finger.templateCount); 
   Serial.println(F(" templates.\n"));
@@ -65,7 +65,7 @@ void setup() {
 void printMenu() {
   Serial.println(F("\n--- COMMAND MENU ---"));
   Serial.println(F("1. Check Template Count"));
-  Serial.println(F("2. Search Fingerprint (ID 0)"));
+  Serial.println(F("2. Search Fingerprint"));
   Serial.println(F("3. Enroll Fingerprint to ID #1"));
   Serial.println(F("4. Delete Template ID #1"));
   Serial.println(F("5. Empty Database"));
@@ -107,7 +107,7 @@ void loop() {
 
 void testTemplateCount() {
   Serial.println(F("\n[Test] Getting template count..."));
-  uint8_t p = finger.templateCount();
+  uint8_t p = finger.getTemplateCount(); // Fixed function call
   if (p == FINGERPRINT_OK) {
     Serial.print(F("Success! Template count: "));
     Serial.println(finger.templateCount);
