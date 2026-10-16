@@ -868,3 +868,35 @@ Adafruit_Fingerprint::getStructuredPacket(Adafruit_Fingerprint_Packet *packet,
   return FINGERPRINT_BADPACKET;
 }
 
+
+
+
+
+
+
+
+/*...............................................................
+
+
+BEGIN YOUR MAIN CODE BELOW
+
+..............................................
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
