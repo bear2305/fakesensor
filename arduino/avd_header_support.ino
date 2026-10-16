@@ -1,3 +1,5 @@
+//REMINBER To add SoftwareSerial.h library
+
 #ifndef ADAFRUIT_FINGERPRINT_H
 #define ADAFRUIT_FINGERPRINT_H
 
