@@ -1,1 +1,3 @@
-.
+tinkcard
+does not allow Arduino.h headers
+and adufruit fingerprint library is not supported
