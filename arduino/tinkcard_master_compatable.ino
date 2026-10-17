@@ -916,146 +916,214 @@ BEGIN THE MAIN CODE
 
 //#include <Adafruit_Fingerprint.h>
 
+/*
+  Adafruit Fingerprint Sensor - Master Test Sketch (Corrected)
+  ---------------------------------------------------------------------------
+  Designed to test the Fake Fingerprint Sensor emulator sketch.
+  
+  Dependencies:
+    - Adafruit Fingerprint Sensor Library
+  
+  Wiring:
+    - Master D2 (RX) -> Fake Sensor D11 (TX)
+    - Master D3 (TX) -> Fake Sensor D10 (RX)
+    - GND -> GND
+  ---------------------------------------------------------------------------
+*/
+
 #include <SoftwareSerial.h>
+//#include <Adafruit_Fingerprint.h>
 
-
-
-
-#if (defined(__AVR__) || defined(ESP8266)) && !defined(__AVR_ATmega2560__)
-// For UNO and others without hardware serial, use software serial...
-// pin #2 is IN from sensor (GREEN wire)
-// pin #3 is OUT from arduino (WHITE wire)
-SoftwareSerial mySerial(10, 11);
-
-#else
-// On Leonardo/M0/etc. with hardware serial, use hardware serial!
-#define mySerial Serial1
-#endif
-
+SoftwareSerial mySerial(2, 3); // RX = 2, TX = 3
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
-void setup()  
-{
-  Serial.begin(9600);
-  while (!Serial);  // For Yun/Leo/Micro/Zero/...
-  delay(100);
-  Serial.println("\n\nAdafruit fingerprint sensor test");
+void setup() {
+  Serial.begin(115200);
+  while (!Serial);
+  delay(1000);
 
-  // set the data rate for the sensor serial port
+  Serial.println(F("\n\n=============================================="));
+  Serial.println(F(" Adafruit Fingerprint Sensor - Master Test"));
+  Serial.println(F("=============================================="));
+
   finger.begin(57600);
-  delay(5);
-  
+  delay(500);
+
   if (finger.verifyPassword()) {
-    Serial.println("Found fingerprint sensor!");
+    Serial.println(F("Found fingerprint sensor!"));
   } else {
-    Serial.println("Did not find fingerprint sensor :(");
+    Serial.println(F("Did not find fingerprint sensor :("));
     while (1) { delay(1); }
   }
 
-  Serial.println(F("Reading sensor parameters"));
   finger.getParameters();
-  Serial.print(F("Status: 0x")); Serial.println(finger.status_reg, HEX);
-  Serial.print(F("Sys ID: 0x")); Serial.println(finger.system_id, HEX);
   Serial.print(F("Capacity: ")); Serial.println(finger.capacity);
   Serial.print(F("Security level: ")); Serial.println(finger.security_level);
-  Serial.print(F("Device address: ")); Serial.println(finger.device_addr, HEX);
-  Serial.print(F("Packet len: ")); Serial.println(finger.packet_len);
-  Serial.print(F("Baud rate: ")); Serial.println(finger.baud_rate);
-
-  finger.getTemplateCount();
-
-  if (finger.templateCount == 0) {
-    Serial.print("Sensor doesn't contain any fingerprint data. Please run the 'enroll' example first.");
-  } else {
-    Serial.println("Waiting for valid finger...");
-    Serial.print("Sensor contains "); Serial.print(finger.templateCount); Serial.println(" templates");
-  }
-}
-
-void loop()                     
-{
-  getFingerprintIDez();
-  delay(50);//don't need to run this at full speed.
-}
-
-uint8_t getFingerprintID() {
-  uint8_t p = finger.getImage();
-  switch (p) {
-    case FINGERPRINT_OK:
-      Serial.println("Image taken");
-      break;
-    case FINGERPRINT_NOFINGER:
-      Serial.println("No finger detected");
-      return p;
-    case FINGERPRINT_PACKETRECIEVEERR:
-      Serial.println("Communication error");
-      return p;
-    case FINGERPRINT_IMAGEFAIL:
-      Serial.println("Imaging error");
-      return p;
-    default:
-      Serial.println("Unknown error");
-      return p;
-  }
-
-  // OK success!
-
-  p = finger.image2Tz();
-  switch (p) {
-    case FINGERPRINT_OK:
-      Serial.println("Image converted");
-      break;
-    case FINGERPRINT_IMAGEMESS:
-      Serial.println("Image too messy");
-      return p;
-    case FINGERPRINT_PACKETRECIEVEERR:
-      Serial.println("Communication error");
-      return p;
-    case FINGERPRINT_FEATUREFAIL:
-      Serial.println("Could not find fingerprint features");
-      return p;
-    case FINGERPRINT_INVALIDIMAGE:
-      Serial.println("Could not find fingerprint features");
-      return p;
-    default:
-      Serial.println("Unknown error");
-      return p;
-  }
+  Serial.print(F("Device address: 0x")); Serial.println(finger.device_addr, HEX);
   
-  // OK converted!
+  finger.getTemplateCount();
+  Serial.print(F("Sensor contains ")); 
+  Serial.print(finger.templateCount); 
+  Serial.println(F(" templates.\n"));
+
+  printMenu();
+}
+
+void printMenu() {
+  Serial.println(F("\n--- COMMAND MENU ---"));
+  Serial.println(F("1. Check Template Count"));
+  Serial.println(F("2. Search Fingerprint"));
+  Serial.println(F("3. Enroll Fingerprint (Custom ID)"));
+  Serial.println(F("4. Delete Template (Custom ID)"));
+  Serial.println(F("5. Empty Database"));
+  Serial.println(F("--------------------"));
+  Serial.println(F("Enter command number (1-5):"));
+}
+
+void loop() {
+  if (Serial.available()) {
+    char choice = Serial.read();
+    
+    if (choice == '\n' || choice == '\r') return;
+
+    switch (choice) {
+      case '1':
+        testTemplateCount();
+        break;
+      case '2':
+        testSearch();
+        break;
+      case '3': {
+        Serial.println(F("\nEnter target ID to enroll (0 to 199):"));
+        uint16_t id = readNumber();
+        testEnroll(id);
+        break;
+      }
+      case '4': {
+        Serial.println(F("\nEnter target ID to delete (0 to 199):"));
+        uint16_t id = readNumber();
+        testDelete(id);
+        break;
+      }
+      case '5':
+        testEmpty();
+        break;
+      default:
+        Serial.println(F("Invalid selection. Try 1-5."));
+        break;
+    }
+    
+    printMenu();
+  }
+}
+
+// Helper to read numbers typed into the Serial Monitor
+uint16_t readNumber() {
+  while (true) {
+    while (Serial.available() == 0);
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    int val = input.toInt();
+    if (val >= 0 && val <= 65535) {
+      return (uint16_t)val;
+    }
+    Serial.println(F("Please enter a valid number:"));
+  }
+}
+
+void testTemplateCount() {
+  Serial.println(F("\n[Test] Getting template count..."));
+  uint8_t p = finger.getTemplateCount();
+  if (p == FINGERPRINT_OK) {
+    Serial.print(F("Success! Template count: "));
+    Serial.println(finger.templateCount);
+  } else {
+    Serial.print(F("Error communicating with sensor. Code: "));
+    Serial.println(p);
+  }
+}
+
+void testSearch() {
+  Serial.println(F("\n[Test] Place finger on sensor (ensure fake sensor switches are set)..."));
+  
+  uint8_t p = finger.getImage();
+  if (p != FINGERPRINT_OK) {
+    if (p == FINGERPRINT_NOFINGER) Serial.println(F("No finger detected."));
+    else Serial.println(F("Imaging error."));
+    return;
+  }
+  Serial.println(F("Image captured!"));
+
+  p = finger.image2Tz(1);
+  if (p != FINGERPRINT_OK) {
+    Serial.println(F("Feature conversion failed."));
+    return;
+  }
+  Serial.println(F("Converted image to feature buffer 1."));
+
   p = finger.fingerFastSearch();
   if (p == FINGERPRINT_OK) {
-    Serial.println("Found a print match!");
-  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
-    Serial.println("Communication error");
-    return p;
+    Serial.println(F("Found a match!"));
+    Serial.print(F("Found ID #")); Serial.print(finger.fingerID);
+    Serial.print(F(" with confidence of ")); Serial.println(finger.confidence);
   } else if (p == FINGERPRINT_NOTFOUND) {
-    Serial.println("Did not find a match");
-    return p;
+    Serial.println(F("Did not find a matching fingerprint in database."));
   } else {
-    Serial.println("Unknown error");
-    return p;
-  }   
-  
-  // found a match!
-  Serial.print("Found ID #"); Serial.print(finger.fingerID); 
-  Serial.print(" with confidence of "); Serial.println(finger.confidence); 
-  return finger.fingerID;
+    Serial.println(F("Search error."));
+  }
 }
 
-// returns -1 if failed, otherwise returns ID #
-int getFingerprintIDez() {
-  uint8_t p = finger.getImage();
-  if (p != FINGERPRINT_OK)  return -1;
+void testEnroll(uint16_t id) {
+  Serial.print(F("\n[Test] Enrolling new template to ID #"));
+  Serial.println(id);
+  Serial.println(F("Step 1: Place finger..."));
 
-  p = finger.image2Tz();
-  if (p != FINGERPRINT_OK)  return -1;
+  while (finger.getImage() != FINGERPRINT_OK);
+  if (finger.image2Tz(1) != FINGERPRINT_OK) {
+    Serial.println(F("Enroll failed at image 1 conversion."));
+    return;
+  }
+  Serial.println(F("Image 1 captured. Remove finger."));
+  delay(2000);
 
-  p = finger.fingerFastSearch();
-  if (p != FINGERPRINT_OK)  return -1;
+  Serial.println(F("Step 2: Place SAME finger again..."));
+  while (finger.getImage() != FINGERPRINT_OK);
+  if (finger.image2Tz(2) != FINGERPRINT_OK) {
+    Serial.println(F("Enroll failed at image 2 conversion."));
+    return;
+  }
+  Serial.println(F("Image 2 captured."));
 
-  // found a match!
-  Serial.print("Found ID #"); Serial.print(finger.fingerID); 
-  Serial.print(" with confidence of "); Serial.println(finger.confidence);
-  return finger.fingerID;
+  if (finger.createModel() != FINGERPRINT_OK) {
+    Serial.println(F("Prints didn't match! Enrollment failed."));
+    return;
+  }
+  Serial.println(F("Prints matched successfully!"));
+
+  if (finger.storeModel(id) == FINGERPRINT_OK) {
+    Serial.print(F("Successfully stored template at ID #"));
+    Serial.println(id);
+  } else {
+    Serial.println(F("Failed to store template in database."));
+  }
+}
+
+void testDelete(uint16_t id) {
+  Serial.print(F("\n[Test] Deleting template at ID #"));
+  Serial.println(id);
+  
+  if (finger.deleteModel(id) == FINGERPRINT_OK) {
+    Serial.println(F("Template deleted successfully!"));
+  } else {
+    Serial.println(F("Failed to delete template (location might already be empty)."));
+  }
+}
+
+void testEmpty() {
+  Serial.println(F("\n[Test] Emptying entire fingerprint database..."));
+  if (finger.emptyDatabase() == FINGERPRINT_OK) {
+    Serial.println(F("Database cleared successfully!"));
+  } else {
+    Serial.println(F("Failed to clear database."));
+  }
 }
