@@ -934,7 +934,7 @@ BEGIN THE MAIN CODE
 #include <SoftwareSerial.h>
 //#include <Adafruit_Fingerprint.h>
 
-SoftwareSerial mySerial(2, 3); // RX = 2, TX = 3
+SoftwareSerial mySerial(10, 11); // change can change it to the pins you want. RX = 2, TX = 3
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 void setup() {
