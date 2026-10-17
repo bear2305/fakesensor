@@ -24,7 +24,7 @@ I ported the whole sensor to a Wokwi chip. All commands, the DOWNCHAR/UPCHAR han
 
 If the build complains about anything (the `uart_config_t` field names are the most likely candidate if your Wokwi version differs), paste the error and I'll fix it.
 
-
+___
 
 
 **The error:** `pin_mode_t` isn't a type in the Wokwi chips API. `pin_init()` just takes a plain integer mode. I changed those two lines to `uint32_t`, and the updated `chip.c` is attached. That should clear the error. If another one appears, paste it and I'll fix it.
