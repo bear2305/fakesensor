@@ -1,0 +1,17 @@
+{
+  "name": "fingerprint sensor",
+  "author": "PhysicsLinux",
+  "pins": [
+    "VCC",
+    "GND",
+    "",
+    "Rx",
+    "Tx",
+    "switch3",
+    "switch2",
+    "switch1",
+    "",
+    "present_finger_switch"
+  ],
+  "controls": []
+}
