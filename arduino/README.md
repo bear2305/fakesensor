@@ -10,7 +10,7 @@ and adufruit fingerprint library is not supported
 
 
 improve master test code with mode features
-Arduino dev board with only hardware support 
+Arduino dev board with only hardware serial support 
 
 esp32 with only 1 UART port
 
