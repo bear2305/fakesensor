@@ -914,32 +914,30 @@ BEGIN THE MAIN CODE
 ..............................................
 */
 
-//#include <Adafruit_Fingerprint.h>
-
 /*
   Adafruit Fingerprint Sensor - Master Test Sketch (Corrected)
   ---------------------------------------------------------------------------
-  Designed to test the Fake Fingerprint Sensor emulator sketch.
+  Designed to test fingerprint sensor with custom ID enrollment and deletion.
   
   Dependencies:
     - Adafruit Fingerprint Sensor Library
   
   Wiring:
-    - Master D2 (RX) -> Fake Sensor D11 (TX)
-    - Master D3 (TX) -> Fake Sensor D10 (RX)
+    - Master D10 (RX) -> Sensor TX (or Fake Sensor D11)
+    - Master D11 (TX) -> Sensor RX (or Fake Sensor D10)
     - GND -> GND
+    - VCC -> 5V / 3.3V
   ---------------------------------------------------------------------------
 */
 
 #include <SoftwareSerial.h>
-//#include <Adafruit_Fingerprint.h>
+#include <Adafruit_Fingerprint.h>
 
-SoftwareSerial mySerial(10, 11); // change can change it to the pins you want. RX = 2, TX = 3
+SoftwareSerial mySerial(10, 11); // RX = 10, TX = 11 (matches your updated pins)
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 void setup() {
   Serial.begin(115200);
-  while (!Serial);
   delay(1000);
 
   Serial.println(F("\n\n=============================================="));
@@ -1017,17 +1015,33 @@ void loop() {
   }
 }
 
-// Helper to read numbers typed into the Serial Monitor
+// Fixed helper to safely read numbers and ignore leftover buffer carriage returns
 uint16_t readNumber() {
+  // Clear any leftover newline or carriage return characters in the buffer first
+  while (Serial.available() > 0) {
+    char t = Serial.peek();
+    if (t == '\n' || t == '\r') {
+      Serial.read();
+    } else {
+      break;
+    }
+  }
+
   while (true) {
     while (Serial.available() == 0);
     String input = Serial.readStringUntil('\n');
     input.trim();
-    int val = input.toInt();
+    
+    // Ignore empty lines caused by leftover line endings
+    if (input.length() == 0) {
+      continue;
+    }
+    
+    long val = input.toInt();
     if (val >= 0 && val <= 65535) {
       return (uint16_t)val;
     }
-    Serial.println(F("Please enter a valid number:"));
+    Serial.println(F("Please enter a valid number (0 - 65535):"));
   }
 }
 
@@ -1044,7 +1058,7 @@ void testTemplateCount() {
 }
 
 void testSearch() {
-  Serial.println(F("\n[Test] Place finger on sensor (ensure fake sensor switches are set)..."));
+  Serial.println(F("\n[Test] Place finger on sensor..."));
   
   uint8_t p = finger.getImage();
   if (p != FINGERPRINT_OK) {
