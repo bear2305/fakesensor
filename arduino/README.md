@@ -8,6 +8,8 @@ and adufruit fingerprint library is not supported
 
 
 
+test esp32master to custom chip
+test esp32master to esp32 slave
 
 improve master test code with mode features
 Arduino dev board with only hardware serial support 
