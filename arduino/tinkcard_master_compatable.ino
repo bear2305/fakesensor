@@ -906,6 +906,8 @@ Adafruit_Fingerprint::getStructuredPacket(Adafruit_Fingerprint_Packet *packet,
 
 
 
+
+
 /*...............................................................
 
 
@@ -913,6 +915,8 @@ BEGIN THE MAIN CODE
 
 ..............................................
 */
+
+
 
 /*
   Adafruit Fingerprint Sensor - Master Test Sketch (Corrected)
@@ -928,7 +932,8 @@ BEGIN THE MAIN CODE
     - GND -> GND
     - VCC -> 5V / 3.3V
   ---------------------------------------------------------------------------
-  NOTICE FOR  tinkercad.com set both board Uart (Rx tx) baud to lesser or equal to 2400
+  NOTICE FOR  tinkercad.com set both dev board Uart (Rx tx serial ) baud to lesser or equal to 2400
+  i have notice that tinkercard has a serial jitter problem ,that corrupts the data sent.but at 2400 baud the that problem disappears  
 
   I made it specifically for tinkcard compatability. So it had been setup already, ie finger.begin(2400)
 */
