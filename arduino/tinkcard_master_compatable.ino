@@ -928,10 +928,13 @@ BEGIN THE MAIN CODE
     - GND -> GND
     - VCC -> 5V / 3.3V
   ---------------------------------------------------------------------------
+  NOTICE FOR  tinkercad.com set both board Uart (Rx tx) baud to lesser or equal to 2400
+
+  I made it specifically for tinkcard compatability. So it had been setup already, ie finger.begin(2400)
 */
 
 #include <SoftwareSerial.h>
-#include <Adafruit_Fingerprint.h>
+//#include <Adafruit_Fingerprint.h>
 
 SoftwareSerial mySerial(10, 11); // RX = 10, TX = 11 (matches your updated pins)
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
@@ -944,7 +947,7 @@ void setup() {
   Serial.println(F(" Adafruit Fingerprint Sensor - Master Test"));
   Serial.println(F("=============================================="));
 
-  finger.begin(57600);
+  finger.begin(2400);
   delay(500);
 
   if (finger.verifyPassword()) {
