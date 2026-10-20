@@ -8,11 +8,11 @@ and adufruit fingerprint library is not supported
 
 
 
-test esp32master to custom chip
-test esp32master to esp32 slave
+test esp32master to custom chip ✅
+test esp32master to esp32 slave ✅
 
 improve master test code with mode features
-Arduino dev board with only hardware serial support 
+Arduino dev board with only hardware serial support ☑️ was already in hardware serial ,just need to rewrite for wokwi esp32 compatable
 
 esp32 with only 1 UART port
 
