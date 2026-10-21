@@ -21,8 +21,7 @@ void loop() {
 
   // Wait 1 second before the next ping
   delay(1000);
-
-
+}
 
 
 
@@ -57,4 +56,5 @@ void loop() {
     Serial.println(incoming);
   }
 }
-}
+
+
