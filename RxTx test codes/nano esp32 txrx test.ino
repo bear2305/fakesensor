@@ -8,7 +8,7 @@ void setup() {
   Serial.begin(9600);
 
   // Initialize Hardware Serial 1: (Baud, Config, RX Pin, TX Pin)
-  mySerial.begin(9600, SERIAL_8N1, 10, 11);
+  mySerial.begin(9600, SERIAL_8N1, 21, 38);
 
   Serial.println("Transmitter Initialized.");
 }
@@ -35,7 +35,7 @@ void setup() {
   Serial.begin(9600);
 
   // Initialize Hardware Serial 1: (Baud, Config, RX Pin, TX Pin)
-  mySerial.begin(9600, SERIAL_8N1, 10, 11);
+  mySerial.begin(9600, SERIAL_8N1, 21, 38);
 
   Serial.println("Receiver Ready. Listening for signals...");
 }
