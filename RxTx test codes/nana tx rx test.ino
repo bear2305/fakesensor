@@ -9,6 +9,7 @@ SoftwareSerial mySerial(RX_PIN, TX_PIN);  // RX, TX
 void setup() {
   Serial.begin(4800);
   mySerial.begin(2400);
+  Serial.println("Board is Ready. ");
 }
 
 void loop() {
