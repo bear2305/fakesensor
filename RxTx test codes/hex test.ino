@@ -40,7 +40,7 @@ void loop() {
 
 // SoftwareSerial(RX, TX)
 // Connect RX to the transmitter's TX pin (Pin 11)
-SoftwareSerial mySerial(5, 11); // RX, TX
+SoftwareSerial mySerial(10, 11); // RX, TX
 
 void setup() {
   // Hardware serial for debugging on your computer (USB)
