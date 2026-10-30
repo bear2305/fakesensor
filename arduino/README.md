@@ -1,5 +1,5 @@
 tinkcard
-does not allow Arduino.h headers
+does not allow Arduino.h headers and uarts baud 
 and adufruit fingerprint library is not supported
 
 #tinkercard needs master code correction
