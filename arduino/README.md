@@ -1,5 +1,5 @@
 tinkcard
-does not allow Arduino.h headers and uarts baud should be below 24
+does not allow Arduino.h headers and uarts baud should be below 2400
 
 
 and adufruit fingerprint library is not supported
