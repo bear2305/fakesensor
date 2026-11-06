@@ -1,3 +1,5 @@
+claude response have to be removed/deleted
+
 I've converted the sketch to ESP32 in `ESP32_Fingerprint_Master.ino`.
 
 **What changed**
