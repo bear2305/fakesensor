@@ -1,7 +1,7 @@
 [README.md](https://github.com/user-attachments/files/32364332/README.md)
 an emulated finger print senser
 
-# Not ready Yet
+#Comming Soon
 
 # But you can try the corrected version "fksensor corrected global conflict.ino"
 
