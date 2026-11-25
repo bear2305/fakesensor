@@ -1,6 +1,9 @@
 [README.md](https://github.com/user-attachments/files/32364332/README.md)
 an emulated finger print senser
 
+
+33Please note the repo have been expanded for different development board check or click the one you have esp32 ardunino tinkercard
+
 #Comming Soon
 
 # But you can try the corrected version "fksensor corrected global conflict.ino"
