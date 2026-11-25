@@ -2,7 +2,7 @@
 an emulated finger print senser
 
 
-33Please note the repo have been expanded for different development board check or click the one you have esp32 ardunino tinkercard
+##Please note the repo have been expanded for different development board check or click the one you have esp32 ardunino tinkercard
 
 #Comming Soon
 
